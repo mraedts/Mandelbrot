@@ -11,15 +11,19 @@ import java.math.RoundingMode;
 
 public class Mandelbrot {
     static int iterations = 0;
-    static int resolution = 10;
-    static int gridBounds = 2;
+    static int resolution = 1;
+    static int gridBounds = 1;
     static double[][] points;
+    static double[] z = {0,0};
 
     public static void main(String[] args) {
-        // double[] z = {0,0};
-        // double[] c = {-0.75,0.1};
-        // iterate(z,c);
-        createPoints();
+
+        double[] c = {-1,5};
+        double[] result = iterate(z,c);
+        System.out.println("r: " + result[0] + " | " + " i:" + result[1] );
+
+        //createPoints();
+
     }
 
 
@@ -29,28 +33,29 @@ public class Mandelbrot {
         double y = gridBounds;
         final double negativeXBound = x;
 
-        points = new double[resolution * resolution * gridBounds * gridBounds][2];
-        System.out.println(points.length);
+        final int rowWidth = (gridBounds* resolution * 2 + 1) ;
+        //System.out.println("row width: " + rowWidth);
 
-        for (int i = 0; i < points.length; i++) {
+        points = new double[rowWidth * rowWidth][2];
+        //System.out.println(points.length);
+
+        for (int i = 1; i <= points.length; i++) {
             double[] coords = {x, y};
-            points[i] = coords;
+            System.out.println(isMandelbrot(x,y));
+            points[i-1] = coords;
 
-            System.out.println(round(x, 1 ) + " | " + round(y, 1) + " | I: ");
-
-            if ( i != 0) {
-                if (i % (resolution * gridBounds * 2) == 0) {
-                    y = y - 1.0 / resolution;
-                    x = negativeXBound;
-                    System.out.println("reset at index " + i + " | " + resolution * gridBounds * 2);
-                } else {
-                    x = x + 1.0 / resolution;
-                }
-            } else x = x + 1.0 / resolution;
+            //System.out.println(round(x, 1) + " | " + round(y, 1) + " | I: " + i);
+            if (i % rowWidth == 0) {
+                y = y - 1.0 / resolution;
+                x = negativeXBound;
+                //System.out.println("reset at index " + i + " | " + rowWidth);
+            } else {
+                x = x + 1.0 / resolution;
+            }
         }
 
         for (int i = 0; i < points.length; i++) {
-            //System.out.println(round(points[i][0], 1 ) + " | " + round(points[i][1], 1) + " | I: ");
+            System.out.println(round(points[i][0], 1 ) + " | " + round(points[i][1], 1) + " | I: ");
         }
     }
 
@@ -60,19 +65,28 @@ public class Mandelbrot {
         return Math.sqrt(rSquared + iSquared);
     }
 
-    //DEBUG
-    public static double round(double value, int places) {
-        if (places < 0) throw new IllegalArgumentException();
 
-        BigDecimal bd = BigDecimal.valueOf(value);
-        bd = bd.setScale(places, RoundingMode.HALF_UP);
-        return bd.doubleValue();
-    }
+
+    static boolean isMandelbrot(double x, double y) {
+        double[] c = {-0.75,0.1};
+
+        double[] result = iterate(z,c);
+        if (Double.isInfinite(result[0]) || Double.isInfinite(result[1])) return false;
+        double distance = distanceFromOrigin(result[0], result[1]);
+        System.out.println(distance);
+        return distanceFromOrigin(result[0], result[1]) < 2.0;
+   }
+
+
 
     static double[] iterate(double[] z, double[] c) {
         double zRealResult = z[0] * z[0];
         double zImaginaryResult = z[0] * z[1] * 2 + z[1] * z[1];
         double[] result = {zRealResult + c[0], zImaginaryResult + c[1]};
+
+        if (Double.isInfinite(result[0]) || Double.isInfinite(result[1])) return result;
+
+        System.out.println("r: " + result[0] + " | " + " i:" + result[1] );
 
         if (iterations < 30) {
             iterations++;
@@ -80,5 +94,14 @@ public class Mandelbrot {
         }
 
         return result;
+    }
+
+    //DEBUG
+    public static double round(double value, int places) {
+        if (places < 0) throw new IllegalArgumentException();
+
+        BigDecimal bd = BigDecimal.valueOf(value);
+        bd = bd.setScale(places, RoundingMode.HALF_UP);
+        return bd.doubleValue();
     }
 }
