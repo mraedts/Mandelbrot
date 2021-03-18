@@ -18,51 +18,41 @@ public class Mandelbrot {
     static int iterations = 0;
     static int resolution = 1000;
     static int gridBounds = 2;
-    static double[][] points;
+    //static double[][] points;
     static double[] z = {0,0};
+    static double displayedPercentage = 0.0;
 
     static final int rowWidth = (gridBounds* resolution * 2 + 1) ;
     static BufferedImage image = new BufferedImage(rowWidth,rowWidth,BufferedImage.TYPE_INT_RGB);
 
     public static void main(String[] args) throws IOException {
-
-        double[] c = {-1,5};
-        double[] result = iterate(z,c);
-        //System.out.println("r: " + result[0] + " | " + " i:" + result[1] );
-
-
         createPoints();
-
     }
 
     public static void createPoints() throws IOException {
         double x = -gridBounds;
         double y = gridBounds;
         final double negativeXBound = x;
-
-
         System.out.println("row width: " + rowWidth);
-
-        points = new double[rowWidth * rowWidth][2];
+        //points = new double[rowWidth * rowWidth][2];
         //System.out.println(points.length);
-
         int column = 0;
         int row = 0;
 
-        for (int i = 1; i <= points.length; i++) {
+        for (int i = 1; i <= rowWidth * rowWidth; i++) {
             double[] coords = {x, y};
-            if (isMandelbrot(x,y)) {
+            if (isMandelbrot(coords)) {
                 Color black = new Color(0,0,0);
                 int rgb = black.getRGB();
-                System.out.println("column: " + column +  " | row: " + row);
+                //System.out.println("column: " + column +  " | row: " + row + " true");
                 image.setRGB(column, row, rgb);
             } else {
                 Color white = new Color(255,255,255);
                 int rgb = white.getRGB();
-                System.out.println("column: " + column +  " | row: " + row);
+                //System.out.println("column: " + column +  " | row: " + row+ " false");
                 image.setRGB(column,row,rgb);
             }
-            points[i-1] = coords;
+            //points[i-1] = coords;
 
             //System.out.println(round(x, 1) + " | " + round(y, 1) + " | I: " + (i-1));
             if (i % rowWidth == 0) {
@@ -75,56 +65,60 @@ public class Mandelbrot {
                 column++;
                 x = x + 1.0 / resolution;
             }
-
-
+            double percentage = (((double)i + 1.0) / (double)(rowWidth * rowWidth)) * 100;
+            percentage = round(percentage, 1);
+            if (percentage != displayedPercentage) {
+                System.out.println( percentage + "%");
+                displayedPercentage = percentage;
+            }
 
         }
-
         System.out.println(image.getRGB(5,5));
         File file = new File("saved.png");
         ImageIO.write(image, "png", file);
 
-        for (double[] point : points) {
-            //System.out.println(round(point[0], 1) + " | " + round(point[1], 1) + " | I: ");
-        }
-    }
 
+    }
     static double distanceFromOrigin(double r, double i) {
         double rSquared = r * r;
         double iSquared = i * i;
         return Math.sqrt(rSquared + iSquared);
     }
 
+    public static boolean isMandelbrot(double[] c) {
+        double[] result = iterate(c);
+        if (Double.isFinite(result[0]) && Double.isFinite(result[1])) return true;
+        else return false;
+    }
+
+    public static Color determineColor(int iterations) {
+        return null;
+    }
 
 
-    static boolean isMandelbrot(double x, double y) {
-        double[] c = {x,y};
+    public static double[] solve(double r, double i, double[] c) {
+        double zRealComponent = r * r - i * i;
+        double zImaginaryComponent = 2 * r * i;
+        double[] solution = {zRealComponent + c[0], zImaginaryComponent + c[1]};
+        //System.out.println("r: " + solution[0] + " | i: " + solution[1]);
+        return solution;
+    }
 
-        double[] result = iterate(z,c);
-        if (Double.isInfinite(result[0]) || Double.isInfinite(result[1])) return false;
-        double distance = distanceFromOrigin(result[0], result[1]);
-        //System.out.println(distance);
-        return distanceFromOrigin(result[0], result[1]) < 2.0;
-   }
+    public static double[] iterate(double[] c) {
+        int iterations = 0;
+        double[] currentIterationResult = {0,0};
+        double[] z = {0,0};
 
-
-
-    static double[] iterate(double[] z, double[] c) {
-        double zRealResult = z[0] * z[0];
-        double zImaginaryResult = z[0] * z[1] * 2 + z[1] * z[1];
-        double[] result = {zRealResult + c[0], zImaginaryResult + c[1]};
-
-        if (Double.isInfinite(result[0]) || Double.isInfinite(result[1])) return result;
-
-        //System.out.println("r: " + result[0] + " | " + " i:" + result[1] );
-
-        if (iterations < 30) {
+        while (Double.isFinite(z[0]) && Double.isFinite(z[1]) && iterations < 1000) {
+            z = solve(z[0], z[1], c);
             iterations++;
-            return iterate(result, c);
         }
 
-        return result;
+        return z;
     }
+
+
+
 
     //DEBUG
     public static double round(double value, int places) {
