@@ -1,3 +1,7 @@
+package main.java;
+
+import main.java.Mandelbrot;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -24,6 +28,7 @@ public class RenderThread extends Thread {
     @Override
     public void run() {
         super.run();
+        /*
         for (int i = 0; i < instructionSet.frameInstructions.size(); i++) {
             Mandelbrot.FrameInstruction instructions = instructionSet.frameInstructions.get(i);
             try {
@@ -32,6 +37,8 @@ public class RenderThread extends Thread {
                 e.printStackTrace();
             }
         }
+
+         */
     }
 
     public RenderThread(Mandelbrot.InstructionSet instructionSet) throws IOException {
@@ -111,7 +118,7 @@ public class RenderThread extends Thread {
              */
         }
 
-        File file = new File("./img/" + imageNumber +".png");
+        File file = new File("C:\\Users\\Mart\\IdeaProjects\\Mandelbrot\\imgs\\" + imageNumber +".png");
         ImageIO.write(image, "png", file);
     }
 
@@ -137,6 +144,8 @@ public class RenderThread extends Thread {
             z = solve(z[0], z[1], c);
             iterations++;
         }
+
+
         return new CalculationResult(z, iterations);
     }
 

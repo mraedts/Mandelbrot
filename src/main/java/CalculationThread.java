@@ -1,0 +1,93 @@
+package main.java;
+
+
+import java.awt.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.concurrent.Callable;
+
+class Result {
+    Color color;
+    int column, row;
+
+    public Result(Color color, int column, int row) {
+        this.color = color;
+        this.column = column;
+        this.row = row;
+    }
+}
+
+public class CalculationThread implements Callable<Result[]> {
+    int maxIterations;
+    Mandelbrot.InstructionSet instructionSet;
+
+    public CalculationThread(int maxIterations, Mandelbrot.InstructionSet instructionSet) {
+        this.maxIterations = maxIterations;
+        this.instructionSet = instructionSet;
+    }
+
+    @Override
+    public Result[] call() throws Exception {
+        Result[] results = new Result[instructionSet.instructions.size()];
+
+        for (int i = 0; i < instructionSet.instructions.size(); i++) {
+            Mandelbrot.Instruction instruction = instructionSet.instructions.get(i);
+            CalculationResult result = iterate(new double[] {instruction.x,instruction.y});
+            Color color = determineColor(result.iterations);
+            results[i] = new Result(color,instruction.column, instruction.row);
+        }
+        return results;
+    }
+
+    public class CalculationResult {
+        double[] solution;
+        int iterations;
+
+        public CalculationResult(double[] solution, int iterations) {
+            this.solution = solution;
+            this.iterations = iterations;
+        }
+    }
+
+
+    public  double[] solve(double r, double i, double[] c) {
+        double zRealComponent = r * r - i * i;
+        double zImaginaryComponent = 2 * r * i;
+        return new double[]{zRealComponent + c[0], zImaginaryComponent + c[1]};
+    }
+
+    public CalculationResult iterate(double[] c) {
+        int iterations = 0;
+        double[] z = {0,0};
+
+        while (Double.isFinite(z[0]) && Double.isFinite(z[1]) && iterations < maxIterations) {
+            z = solve(z[0], z[1], c);
+            iterations++;
+        }
+
+
+        //if (iterations > 15 ) System.out.println("iterations: " + iterations);
+        return new CalculationResult(z, iterations);
+    }
+
+    public static double round(double value, int places) {
+        if (places < 0) throw new IllegalArgumentException();
+
+        BigDecimal bd = BigDecimal.valueOf(value);
+        bd = bd.setScale(places, RoundingMode.HALF_UP);
+        return bd.doubleValue();
+    }
+
+
+    public Color determineColor(int iterationsToInfinity) {
+        double iterationPercentage = (double)iterationsToInfinity / (double)maxIterations;
+        int red = (int)round(iterationPercentage * 255 + 0, 0);
+        if (red > 255) red = 255;
+
+        //if (iterationsToInfinity == maxIterations) red = 0;
+        return new Color(red,0,0);
+    }
+
+
+}
