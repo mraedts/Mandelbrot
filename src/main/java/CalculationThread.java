@@ -4,7 +4,6 @@ package main.java;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
 import java.util.concurrent.Callable;
 
 class Result {
@@ -84,9 +83,10 @@ public class CalculationThread implements Callable<Result[]> {
         double iterationPercentage = (double)iterationsToInfinity / (double)maxIterations;
         int red = (int)round(iterationPercentage * 255 + 0, 0);
         if (red > 255) red = 255;
+        int color =  Color.HSBtoRGB(0.95f + 10 * (float)iterationPercentage ,0.6f,1.0f);
 
-        //if (iterationsToInfinity == maxIterations) red = 0;
-        return new Color(red,0,0);
+        if (iterationsToInfinity == maxIterations) return new Color(0,0,0);
+        return new Color(color);
     }
 
 

@@ -13,8 +13,8 @@ import java.util.ArrayList;
 
 public class RenderThread extends Thread {
     //settings
-    int width = 4000;
-    int height = 4000;
+    int width = 10000;
+    int height = 10000;
     int iterations = 0;
     int maxIterations = 1500;
 

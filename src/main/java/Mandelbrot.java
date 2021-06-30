@@ -1,36 +1,40 @@
-package main.java;/*
-import java.awt.image.WritableRaster;
-import java.io.ByteArrayOutputStream;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import javax.imageio.ImageIO;
- */
+package main.java;
+
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
 public class Mandelbrot {
     int threadCount;
-    int width = 4000;
-    int height = 4000;
-    int maxIterations = 100000;
-    int zoom = 2000;
+    int width = 5000;
+    int height = 5000;
+    int maxIterations = 1000;
+    int zoom = 1700;
+    double xTarget = -0.74925;
+    double yTarget = 0.1005;
 
 
     public Mandelbrot() throws InterruptedException, IOException, ExecutionException {
         this.threadCount = Runtime.getRuntime().availableProcessors();
-        //this.threadCount = 1;
-        InstructionSet[] instructionSets =  createInStructions(maxIterations,width,height,0,0, zoom);
-        startThreads(instructionSets);
+        long start = System.currentTimeMillis();
 
+
+        InstructionSet[] instructionSets =  createInStructions(width,height,xTarget,yTarget, zoom);
+        long finish = System.currentTimeMillis();
+        long timeElapsed = finish - start;
+        System.out.println("Creating instructions took " + timeElapsed + "ms");
+        long startTwo = System.currentTimeMillis();
+
+        startThreads(instructionSets);
+        long finishTwo = System.currentTimeMillis();
+        long timeElapsedTwo = finishTwo - startTwo;
+        System.out.println("Rendering image took " + timeElapsedTwo + "ms");
     }
 
     public  class Instruction {
@@ -47,16 +51,7 @@ public class Mandelbrot {
     }
 
     public class InstructionSet {
-
         ArrayList<Instruction> instructions = new ArrayList<>();
-
-
-
-        public void add(Instruction instruction) {
-            this.instructions.add(instruction);
-        }
-
-
     }
 
     public class GridLimits {
@@ -79,7 +74,7 @@ public class Mandelbrot {
         List<Callable<Result[]>> callables = new ArrayList<>();
 
         for (int i = 0; i < threadCount; i++) {
-            CalculationThread callable = new CalculationThread(100,instructionSets[i]);
+            CalculationThread callable = new CalculationThread(maxIterations,instructionSets[i]);
             callables.add(callable);
         }
 
@@ -94,7 +89,7 @@ public class Mandelbrot {
 
             for (int j = 0; j < results.length; j++) {
                 Color color = results[j].color;
-                image.setRGB(results[j].row,results[j].column, results[j].color.getRGB());
+                image.setRGB(results[j].column,results[j].row, results[j].color.getRGB());
             }
         }
 
@@ -104,7 +99,7 @@ public class Mandelbrot {
 
     }
 
-    public InstructionSet[] createInStructions(int maxIterations, int width, int height, int xTarget, int yTarget, int zoom) {
+    public InstructionSet[] createInStructions(int width, int height, double xTarget, double yTarget, int zoom) {
         InstructionSet[] instructionSets = new InstructionSet[threadCount];
 
         GridLimits limits = new GridLimits(xTarget, yTarget, zoom, width, height);
