@@ -12,10 +12,10 @@ import java.util.concurrent.*;
 
 public class Mandelbrot {
     int threadCount;
-    int width = 5000;
-    int height = 5000;
+    int width = 1000;
+    int height = 1000;
     int maxIterations = 1000;
-    int zoom = 1700;
+    int zoom = 1500;
     double xTarget = -0.74925;
     double yTarget = 0.1005;
 
@@ -61,10 +61,24 @@ public class Mandelbrot {
         double yMin;
 
         public GridLimits(double xTarget, double yTarget, double zoom, int width, int height) {
-            this.xMin = xTarget - (double)width / (2 * zoom) ;
-            this.yMax = yTarget + (double)height / (2 * zoom)  ;
-            this.yMin = yTarget - (double)height / (2 * zoom) ;
-            this.xMax = xTarget + (double)width / (2 * zoom)  ;
+            String aspectRatio = getAspectRatio(width, height);
+            if (aspectRatio == "1:1") {
+                this.xMin = xTarget - 12.5 / (2 * zoom);
+                this.yMax = yTarget + 12.5 / (2 * zoom) ;
+                this.yMin = yTarget - 12.5 / (2 * zoom);
+                this.xMax = xTarget + 12.5 / (2 * zoom);
+            } else if (aspectRatio == "16:9") {
+                this.xMin = xTarget - 16 / (2 * zoom);
+                this.yMax = yTarget + 9 / (2 * zoom);
+                this.yMin = yTarget - 9 / (2 * zoom);
+                this.xMax = xTarget + 16 / (2 * zoom);
+            }
+        }
+
+        public String getAspectRatio(int width, int height) {
+            if (width == height) return "1:1";
+            else if (((double)width / 16) == ((double)height / 9)) return "16:9";
+            else throw new IllegalArgumentException("Invalid resolution (" + width + "x" + height + ") entered! supported aspect ratios are 1:1 and 16:9.");
         }
     }
 
@@ -83,7 +97,6 @@ public class Mandelbrot {
 
         BufferedImage image = new BufferedImage(width,height,BufferedImage.TYPE_INT_RGB);
 
-
         for (int i = 0; i < futures.size(); i++) {
             Result[] results = futures.get(i).get();
 
@@ -95,8 +108,6 @@ public class Mandelbrot {
 
         File file = new File("C:\\Users\\Mart\\IdeaProjects\\Mandelbrot\\imgs\\" + "render" +".png");
         ImageIO.write(image, "png", file);
-
-
     }
 
     public InstructionSet[] createInStructions(int width, int height, double xTarget, double yTarget, int zoom) {
@@ -120,7 +131,6 @@ public class Mandelbrot {
         }
         for (int i = 1; i <= width * height; i++) {
             double[] coords = {x, y};
-            //System.out.println("coords: " + x + " | " + y);
 
             instructionSets[thread].instructions.add(new Instruction(x, y, column, row));
 
@@ -139,15 +149,8 @@ public class Mandelbrot {
         return instructionSets;
     }
 
-
-
     public static void main(String[] args) throws IOException, InterruptedException, ExecutionException {
         Mandelbrot mandelbrot = new Mandelbrot();
-
-
-
-
-
 
     }
 }

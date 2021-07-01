@@ -2,8 +2,6 @@ package main.java;
 
 
 import java.awt.*;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.concurrent.Callable;
 
 class Result {
@@ -65,25 +63,13 @@ public class CalculationThread implements Callable<Result[]> {
             iterations++;
         }
 
-
-        //if (iterations > 15 ) System.out.println("iterations: " + iterations);
         return new CalculationResult(z, iterations);
     }
 
-    public static double round(double value, int places) {
-        if (places < 0) throw new IllegalArgumentException();
-
-        BigDecimal bd = BigDecimal.valueOf(value);
-        bd = bd.setScale(places, RoundingMode.HALF_UP);
-        return bd.doubleValue();
-    }
-
-
     public Color determineColor(int iterationsToInfinity) {
         double iterationPercentage = (double)iterationsToInfinity / (double)maxIterations;
-        int red = (int)round(iterationPercentage * 255 + 0, 0);
-        if (red > 255) red = 255;
-        int color =  Color.HSBtoRGB(0.95f + 10 * (float)iterationPercentage ,0.6f,1.0f);
+
+        int color =  Color.HSBtoRGB(0.7f + 10 * (float)iterationPercentage ,0.6f,1.0f);
 
         if (iterationsToInfinity == maxIterations) return new Color(0,0,0);
         return new Color(color);
