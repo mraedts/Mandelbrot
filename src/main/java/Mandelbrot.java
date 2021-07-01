@@ -12,29 +12,39 @@ import java.util.concurrent.*;
 
 public class Mandelbrot {
     int threadCount;
-    int width = 1000;
-    int height = 1000;
-    int maxIterations = 1000;
-    int zoom = 1500;
+    int width = 1920;
+    int height = 1080;
+    int maxIterations = 500;
+    double zoom = 1;
+    double zoomSpeed = 1.02; // 10% zoom per frame
     double xTarget = -0.74925;
     double yTarget = 0.1005;
-
+    int maxFrames = 1000;
+    int imgCount = 1;
+    double plus = 0.1;
 
     public Mandelbrot() throws InterruptedException, IOException, ExecutionException {
-        this.threadCount = Runtime.getRuntime().availableProcessors();
-        long start = System.currentTimeMillis();
 
+        while (imgCount < maxFrames + 1 && Double.isFinite(zoom)) {
+            this.threadCount = Runtime.getRuntime().availableProcessors();
 
-        InstructionSet[] instructionSets =  createInStructions(width,height,xTarget,yTarget, zoom);
-        long finish = System.currentTimeMillis();
-        long timeElapsed = finish - start;
-        System.out.println("Creating instructions took " + timeElapsed + "ms");
-        long startTwo = System.currentTimeMillis();
+            long start = System.currentTimeMillis();
 
-        startThreads(instructionSets);
-        long finishTwo = System.currentTimeMillis();
-        long timeElapsedTwo = finishTwo - startTwo;
-        System.out.println("Rendering image took " + timeElapsedTwo + "ms");
+            InstructionSet[] instructionSets =  createInStructions(width,height,xTarget,yTarget, zoom);
+            long finish = System.currentTimeMillis();
+            long timeElapsed = finish - start;
+            System.out.println("Creating instructions took " + timeElapsed + "ms");
+            long startTwo = System.currentTimeMillis();
+
+            startThreads(instructionSets);
+            long finishTwo = System.currentTimeMillis();
+            long timeElapsedTwo = finishTwo - startTwo;
+            System.out.println("Rendering image took " + timeElapsedTwo + "ms");
+
+            System.out.println("Zoom: " + zoom + " | " + String.format("%03d", imgCount));
+            zoom = zoom * zoomSpeed;
+            imgCount++;
+        }
     }
 
     public  class Instruction {
@@ -82,9 +92,9 @@ public class Mandelbrot {
         }
     }
 
-
     public void startThreads(InstructionSet[] instructionSets) throws InterruptedException, ExecutionException, IOException {
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+
         List<Callable<Result[]>> callables = new ArrayList<>();
 
         for (int i = 0; i < threadCount; i++) {
@@ -106,11 +116,11 @@ public class Mandelbrot {
             }
         }
 
-        File file = new File("C:\\Users\\Mart\\IdeaProjects\\Mandelbrot\\imgs\\" + "render" +".png");
+        File file = new File("C:\\Users\\Mart\\IdeaProjects\\Mandelbrot\\imgs\\" + "img"+ String.format("%03d", imgCount) +".png");
         ImageIO.write(image, "png", file);
     }
 
-    public InstructionSet[] createInStructions(int width, int height, double xTarget, double yTarget, int zoom) {
+    public InstructionSet[] createInStructions(int width, int height, double xTarget, double yTarget, double zoom) {
         InstructionSet[] instructionSets = new InstructionSet[threadCount];
 
         GridLimits limits = new GridLimits(xTarget, yTarget, zoom, width, height);
@@ -151,6 +161,5 @@ public class Mandelbrot {
 
     public static void main(String[] args) throws IOException, InterruptedException, ExecutionException {
         Mandelbrot mandelbrot = new Mandelbrot();
-
     }
 }
