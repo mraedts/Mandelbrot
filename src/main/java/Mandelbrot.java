@@ -12,14 +12,14 @@ import java.util.concurrent.*;
 
 public class Mandelbrot {
     int threadCount;
-    int width = 300;
-    int height = 300;
-    int maxIterations = 700;
+    int width = 500;
+    int height = 500;
+    int maxIterations = 2000;
     double zoom = 1;
     double zoomSpeed = 1.02; // * 100 = % zoom per frame
     double xTarget = -0.74925;
     double yTarget = 0.1005;
-    int maxFrames = 100;
+    int maxFrames = 1000;
     int frameCount = 1;
 
 
@@ -58,7 +58,9 @@ public class Mandelbrot {
         long finish = System.currentTimeMillis();
         long timeElapsed = finish - start;
 
-        System.out.println("Finished after " + round((double)timeElapsed / 1000,1) + " seconds.");
+        System.out.println("Finished rendering "+ maxFrames + " frames after " + round((double)timeElapsed / 1000,1) +
+                " seconds.\nResolution:   " +width + "x" + height + "\nMaximum iterations:   "
+                + maxIterations + "\nZoom per frame: " + round((zoomSpeed - 1) * 100, 0) + "%\nTarget: (" + xTarget + "," + yTarget + ")");
 
     }
 
