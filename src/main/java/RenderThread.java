@@ -1,48 +1,40 @@
 package main.java;
 
-import main.java.Mandelbrot;
 
-import javax.imageio.ImageIO;
 import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.ArrayList;
+import java.util.concurrent.Callable;
 
-public class RenderThread extends Thread {
-    //settings
-    int width = 10000;
-    int height = 10000;
-    int iterations = 0;
-    int maxIterations = 1500;
+class Result {
+    Color color;
+    int column, row;
 
-    double xTarget;
-    double yTarget;
-    double zoom;
-    String imageNumber;
+    public Result(Color color, int column, int row) {
+        this.color = color;
+        this.column = column;
+        this.row = row;
+    }
+}
+
+public class RenderThread implements Callable<Result[]> {
+    int maxIterations;
     Mandelbrot.InstructionSet instructionSet;
-    double displayedPercentage = 0.0;
 
-    @Override
-    public void run() {
-        super.run();
-        /*
-        for (int i = 0; i < instructionSet.frameInstructions.size(); i++) {
-            Mandelbrot.FrameInstruction instructions = instructionSet.frameInstructions.get(i);
-            try {
-                renderOnTarget(instructionSet.xTarget, instructionSet.yTarget,  instructions.zoom,  instructions.imageNumber);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-         */
+    public RenderThread(int maxIterations, Mandelbrot.InstructionSet instructionSet) {
+        this.maxIterations = maxIterations;
+        this.instructionSet = instructionSet;
     }
 
-    public RenderThread(Mandelbrot.InstructionSet instructionSet) throws IOException {
-        this.instructionSet =  instructionSet;
+    @Override
+    public Result[] call() throws Exception {
+        Result[] results = new Result[instructionSet.instructions.size()];
+
+        for (int i = 0; i < instructionSet.instructions.size(); i++) {
+            Mandelbrot.Instruction instruction = instructionSet.instructions.get(i);
+            CalculationResult result = iterate(new double[] {instruction.x,instruction.y});
+            Color color = determineColor(result.iterations);
+            results[i] = new Result(color,instruction.column, instruction.row);
+        }
+        return results;
     }
 
     public class CalculationResult {
@@ -55,80 +47,6 @@ public class RenderThread extends Thread {
         }
     }
 
-    public class GridLimits {
-        double xMin;
-        double yMax;
-        double xMax;
-        double yMin;
-
-        public GridLimits(double xTarget, double yTarget, double zoom) {
-            this.xMin = xTarget - (double)width / (2 * zoom) ;
-            this.yMax = yTarget + (double)height / (2 * zoom)  ;
-            this.yMin = yTarget - (double)height / (2 * zoom) ;
-            this.xMax = xTarget + (double)width / (2 * zoom)  ;
-        }
-    }
-
-    public void renderOnTarget(double xTarget, double yTarget, double zoom, String imageNumber) throws IOException {
-        BufferedImage image = new BufferedImage(width,height,BufferedImage.TYPE_INT_RGB);
-        GridLimits limits = new GridLimits(xTarget, yTarget, zoom);
-
-        double x = limits.xMin;
-        double y = limits.yMax;
-
-        int column = 0;
-        int row = 0;
-
-        double xStep = Math.abs(limits.xMax - limits.xMin) / (double)width;
-        double yStep = Math.abs(limits.yMax - limits.yMin) / (double) height;
-
-        for (int i = 1; i <= width * height;i++) {
-            double[] coords = {x, y};
-            CalculationResult result = iterate(coords);
-
-            if (result.iterations == maxIterations) {
-                Color black = new Color(0,0,0);
-                int rgb = black.getRGB();
-
-                image.setRGB(column, row, rgb);
-            } else {
-                Color white = determineColor(result.iterations);
-                int rgb = white.getRGB();
-
-                image.setRGB(column,row,rgb);
-            }
-
-            if (i % width == 0) {
-                y = y - yStep;
-                x = limits.xMin;
-                column = 0;
-                row++;
-            } else {
-                column++;
-                x = x + xStep;
-            }
-
-            /*
-            double percentage = (((double)i + 1.0) / (double)(width * height)) * 100;
-            percentage = round(percentage, 1);
-            if (percentage != displayedPercentage) {
-                System.out.println( percentage + "%");
-                displayedPercentage = percentage;
-            }
-             */
-        }
-
-        File file = new File("C:\\Users\\Mart\\IdeaProjects\\Mandelbrot\\imgs\\" + imageNumber +".png");
-        ImageIO.write(image, "png", file);
-    }
-
-    public Color determineColor(int iterationsToInfinity) {
-        double iterationPercentage = (double)iterationsToInfinity / (double)maxIterations;
-        int red = (int)round(iterationPercentage * 255 + 0, 0);
-        if (red > 255) red = 255;
-        return new Color(red,0,0);
-    }
-
 
     public  double[] solve(double r, double i, double[] c) {
         double zRealComponent = r * r - i * i;
@@ -136,7 +54,7 @@ public class RenderThread extends Thread {
         return new double[]{zRealComponent + c[0], zImaginaryComponent + c[1]};
     }
 
-    public  CalculationResult iterate(double[] c) {
+    public CalculationResult iterate(double[] c) {
         int iterations = 0;
         double[] z = {0,0};
 
@@ -145,16 +63,17 @@ public class RenderThread extends Thread {
             iterations++;
         }
 
-
         return new CalculationResult(z, iterations);
     }
 
-    public static double round(double value, int places) {
-        if (places < 0) throw new IllegalArgumentException();
+    public Color determineColor(int iterationsToInfinity) {
+        double iterationPercentage = (double)iterationsToInfinity / (double)maxIterations;
 
-        BigDecimal bd = BigDecimal.valueOf(value);
-        bd = bd.setScale(places, RoundingMode.HALF_UP);
-        return bd.doubleValue();
+        int color =  Color.HSBtoRGB(0.7f + 10 * (float)iterationPercentage ,0.6f,1.0f);
+
+        if (iterationsToInfinity == maxIterations) return new Color(0,0,0);
+        return new Color(color);
     }
+
 
 }

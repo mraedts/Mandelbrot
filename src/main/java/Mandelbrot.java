@@ -12,39 +12,59 @@ import java.util.concurrent.*;
 
 public class Mandelbrot {
     int threadCount;
-    int width = 1920;
-    int height = 1080;
-    int maxIterations = 500;
+    int width = 300;
+    int height = 300;
+    int maxIterations = 700;
     double zoom = 1;
-    double zoomSpeed = 1.02; // 10% zoom per frame
+    double zoomSpeed = 1.02; // * 100 = % zoom per frame
     double xTarget = -0.74925;
     double yTarget = 0.1005;
-    int maxFrames = 1000;
-    int imgCount = 1;
-    double plus = 0.1;
+    int maxFrames = 100;
+    int frameCount = 1;
+
 
     public Mandelbrot() throws InterruptedException, IOException, ExecutionException {
+        long start = System.currentTimeMillis();
 
-        while (imgCount < maxFrames + 1 && Double.isFinite(zoom)) {
+        while (frameCount < maxFrames + 1 && Double.isFinite(zoom)) {
+            System.out.println("Rendering image " + frameCount + "/" + maxFrames + " | " + round(((double)frameCount/maxFrames) * 100, 1) + "%" );
             this.threadCount = Runtime.getRuntime().availableProcessors();
 
-            long start = System.currentTimeMillis();
+            long frameStart = System.currentTimeMillis();
 
             InstructionSet[] instructionSets =  createInStructions(width,height,xTarget,yTarget, zoom);
-            long finish = System.currentTimeMillis();
-            long timeElapsed = finish - start;
-            System.out.println("Creating instructions took " + timeElapsed + "ms");
+
+            /*
+            long frameFinish = System.currentTimeMillis();
+            long frameTimeElapsed = frameFinish - frameStart;
+            System.out.println("Creating instructions took " + frameTimeElapsed + "ms");
             long startTwo = System.currentTimeMillis();
 
+
+             */
             startThreads(instructionSets);
-            long finishTwo = System.currentTimeMillis();
+
+            /*long finishTwo = System.currentTimeMillis();
             long timeElapsedTwo = finishTwo - startTwo;
             System.out.println("Rendering image took " + timeElapsedTwo + "ms");
 
-            System.out.println("Zoom: " + zoom + " | " + String.format("%03d", imgCount));
+            System.out.println("Zoom: " + zoom + " | " + String.format("%03d", frameCount));
+             */
             zoom = zoom * zoomSpeed;
-            imgCount++;
+
+            frameCount++;
         }
+
+        long finish = System.currentTimeMillis();
+        long timeElapsed = finish - start;
+
+        System.out.println("Finished after " + round((double)timeElapsed / 1000,1) + " seconds.");
+
+    }
+
+    private static double round (double value, int precision) {
+        int scale = (int) Math.pow(10, precision);
+        return (double) Math.round(value * scale) / scale;
     }
 
     public  class Instruction {
@@ -72,12 +92,12 @@ public class Mandelbrot {
 
         public GridLimits(double xTarget, double yTarget, double zoom, int width, int height) {
             String aspectRatio = getAspectRatio(width, height);
-            if (aspectRatio == "1:1") {
+            if (aspectRatio.equals("1:1")) {
                 this.xMin = xTarget - 12.5 / (2 * zoom);
                 this.yMax = yTarget + 12.5 / (2 * zoom) ;
                 this.yMin = yTarget - 12.5 / (2 * zoom);
                 this.xMax = xTarget + 12.5 / (2 * zoom);
-            } else if (aspectRatio == "16:9") {
+            } else if (aspectRatio.equals("16:9")) {
                 this.xMin = xTarget - 16 / (2 * zoom);
                 this.yMax = yTarget + 9 / (2 * zoom);
                 this.yMin = yTarget - 9 / (2 * zoom);
@@ -98,7 +118,7 @@ public class Mandelbrot {
         List<Callable<Result[]>> callables = new ArrayList<>();
 
         for (int i = 0; i < threadCount; i++) {
-            CalculationThread callable = new CalculationThread(maxIterations,instructionSets[i]);
+            RenderThread callable = new RenderThread(maxIterations,instructionSets[i]);
             callables.add(callable);
         }
 
@@ -116,7 +136,7 @@ public class Mandelbrot {
             }
         }
 
-        File file = new File("C:\\Users\\Mart\\IdeaProjects\\Mandelbrot\\imgs\\" + "img"+ String.format("%03d", imgCount) +".png");
+        File file = new File("C:\\Users\\Mart\\IdeaProjects\\Mandelbrot\\imgs\\" + "img"+ String.format("%03d", frameCount) +".png");
         ImageIO.write(image, "png", file);
     }
 
