@@ -5,6 +5,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
@@ -13,16 +14,17 @@ public class Mandelbrot {
     int threadCount;
     int width = 2560;
     int height = 1440;
-    int maxIterations = 2000;
-    double zoom = 1;
-    double zoomSpeed = 1.03; // * 100 = % zoom per frame
-    double xTarget =  -0.0452407411;
-    double yTarget = 0.9868162204352258;
+    int maxIterations = 4000;
+    double zoom = 3;
+    double zoomSpeed = 1.01; // * 100 = % zoom per frame
+    double xTarget =  0.452721018749286;
+    double yTarget = 0.39649427698014;
     /* targets:
                 (-0.74915,0.1005)
+                (-0.0452407411,0.9868162204352258)
      */
     int maxFrames = 1000;
-    String colorType = "Ultra Fractal";
+    String colorType = "HSB";
 
     int frameCount = 1;
     int framesLeftTorender = maxFrames;
@@ -35,19 +37,19 @@ public class Mandelbrot {
 
         while (frameCount < maxFrames + 1 && Double.isFinite(zoom)) {
             long frameStart = System.currentTimeMillis();
-            System.out.println("Rendering frame " + frameCount + "/" + maxFrames + " | " + round(((double)frameCount/maxFrames) * 100, 1) + "% | Zoom level: " + zoom + " | ETA: " + etaMillis / 1000 + "s");
+            System.out.println("Rendering frame " + frameCount + "/" + maxFrames + " | " + round(((double)frameCount/maxFrames) * 100, 1) + "% | Zoom level: " + zoom + " | ETA: " + etaMillis / 1000 + "s | Iterations: " + maxIterations);
             this.threadCount = Runtime.getRuntime().availableProcessors();
 
-            InstructionSet[] instructionSets =  createInStructions(width,height,xTarget,yTarget, zoom);
+            double renderProgress = frameCount / (double) maxFrames;
+            InstructionSet[] instructionSets =  createInStructions(width,height,xTarget,yTarget,zoom,renderProgress);
 
-            startThreads(instructionSets);
+            startThreads(instructionSets, renderProgress);
 
             zoom = zoom * zoomSpeed;
             frameCount++;
 
             long frameFinish = System.currentTimeMillis();
             long frameTimeElapsed = frameFinish - frameStart;
-
             totalFrameTime += frameTimeElapsed;
 
             double avgMillisPerFrame = totalFrameTime / ((double)frameCount-1);
@@ -70,15 +72,16 @@ public class Mandelbrot {
     }
 
     public  class Instruction {
-        double x;
-        double y;
+        double x,y,renderProgress;
+
         int row, column;
 
-        public Instruction(double x, double y, int column, int row) {
+        public Instruction(double x, double y, int column, int row, double renderProgress) {
             this.x = x;
             this.y = y;
             this.column = column;
             this.row = row;
+            this.renderProgress = renderProgress;
         }
     }
 
@@ -95,10 +98,13 @@ public class Mandelbrot {
         public GridLimits(double xTarget, double yTarget, double zoom, int width, int height) {
             String aspectRatio = getAspectRatio(width, height);
             if (aspectRatio.equals("1:1")) {
+
                 this.xMin = xTarget - 12.5 / (2 * zoom);
                 this.yMax = yTarget + 12.5 / (2 * zoom) ;
                 this.yMin = yTarget - 12.5 / (2 * zoom);
                 this.xMax = xTarget + 12.5 / (2 * zoom);
+
+                System.out.println("xmin:" + xMin + " | xmax: "+ xMax);
             } else if (aspectRatio.equals("16:9")) {
                 this.xMin = xTarget - 16 / (2 * zoom);
                 this.yMax = yTarget + 9 / (2 * zoom);
@@ -114,13 +120,13 @@ public class Mandelbrot {
         }
     }
 
-    public void startThreads(InstructionSet[] instructionSets) throws InterruptedException, ExecutionException, IOException {
+    public void startThreads(InstructionSet[] instructionSets, double renderProgress) throws InterruptedException, ExecutionException, IOException {
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
 
         List<Callable<Result[]>> callables = new ArrayList<>();
 
         for (int i = 0; i < threadCount; i++) {
-            RenderThread callable = new RenderThread(maxIterations,instructionSets[i], colorType);
+            RenderThread callable = new RenderThread(maxIterations,instructionSets[i], colorType, renderProgress );
             callables.add(callable);
         }
 
@@ -142,7 +148,7 @@ public class Mandelbrot {
         ImageIO.write(image, "png", file);
     }
 
-    public InstructionSet[] createInStructions(int width, int height, double xTarget, double yTarget, double zoom) {
+    public InstructionSet[] createInStructions(int width, int height, double xTarget, double yTarget, double zoom, double renderProgress) {
         InstructionSet[] instructionSets = new InstructionSet[threadCount];
 
         GridLimits limits = new GridLimits(xTarget, yTarget, zoom, width, height);
@@ -155,6 +161,7 @@ public class Mandelbrot {
 
         double xStep = Math.abs(limits.xMax - limits.xMin) / (double) width;
         double yStep = Math.abs(limits.yMax - limits.yMin) / (double) height;
+        //System.out.println("XStep: "+ xStep + " | yStep: " + yStep);
 
         int thread = 0;
 
@@ -162,7 +169,9 @@ public class Mandelbrot {
             instructionSets[i] = new InstructionSet();
         }
         for (int i = 1; i <= width * height; i++) {
-            instructionSets[thread].instructions.add(new Instruction(x, y, column, row));
+
+            //System.out.println( "xStep: "+  xStep+ " | " + x + " | " + y);
+            instructionSets[thread].instructions.add(new Instruction(x, y, column, row, renderProgress));
 
             if (i % width == 0) {
                 y = y - yStep;
@@ -182,4 +191,7 @@ public class Mandelbrot {
     public static void main(String[] args) throws IOException, InterruptedException, ExecutionException {
         Mandelbrot mandelbrot = new Mandelbrot();
     }
+
+
+
 }
